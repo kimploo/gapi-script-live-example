@@ -3,9 +3,46 @@ import { gapi, loadAuth2 } from 'gapi-script'
 
 import { UserCard } from './UserCard';
 import './GoogleLogin.css';
+import axios from 'axios';
 
 export const GoogleLogin  = () => {
   const [user, setUser] = useState(null);
+
+  const updateUser = (currentUser) => {
+    const name = currentUser.getBasicProfile().getName();
+    const profileImg = currentUser.getBasicProfile().getImageUrl();
+    const email = currentUser.getBasicProfile().getEmail();
+    const { id_token } = currentUser.getAuthResponse();
+    setUser({
+      name: name,
+      profileImg: profileImg,
+    });
+    axios.post('http://localhost:3000/api/users/signIn', { data : {
+      name,
+      email,
+      profileImg: profileImg,
+      password: ''
+    },
+    idToken: id_token
+  })
+  };
+
+  const attachSignin = (element, auth2) => {
+    auth2.attachClickHandler(element, {},
+      (googleUser) => {
+        updateUser(googleUser);
+      }, (error) => {
+      console.log(JSON.stringify(error))
+    });
+  };
+
+  const signOut = () => {
+    const auth2 = gapi.auth2.getAuthInstance();
+    auth2.signOut().then(() => {
+      setUser(null);
+      console.log('User signed out.');
+    });
+  }
 
   useEffect(() => {
     const setAuth2 = async () => {
@@ -28,32 +65,6 @@ export const GoogleLogin  = () => {
       setAuth2();
     }
   }, [user])
-
-  const updateUser = (currentUser) => {
-    const name = currentUser.getBasicProfile().getName();
-    const profileImg = currentUser.getBasicProfile().getImageUrl();
-    setUser({
-      name: name,
-      profileImg: profileImg,
-    });
-  };
-
-  const attachSignin = (element, auth2) => {
-    auth2.attachClickHandler(element, {},
-      (googleUser) => {
-        updateUser(googleUser);
-      }, (error) => {
-      console.log(JSON.stringify(error))
-    });
-  };
-
-  const signOut = () => {
-    const auth2 = gapi.auth2.getAuthInstance();
-    auth2.signOut().then(() => {
-      setUser(null);
-      console.log('User signed out.');
-    });
-  }
 
   if(user) {
     return (
